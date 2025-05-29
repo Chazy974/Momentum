@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base
 
 from ..models.base import Base  # <- utilise ta base déclarée
+from app.config import settings 
 
 # 👉 À adapter selon ton cas
 DB_USER = "postgres"
@@ -13,5 +14,5 @@ DB_NAME = "momentum"
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URL))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

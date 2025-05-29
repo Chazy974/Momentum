@@ -12,5 +12,7 @@ class Task(Base):
     completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    due_date = Column(DateTime, nullable=True)  # ← AJOUT À FAIRE ICI ✅
+
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     user = relationship("User", back_populates="tasks")
