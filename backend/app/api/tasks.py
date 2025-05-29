@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.task import Task
 from app.models.user import User  # pour futur lien avec utilisateur
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from datetime import datetime
+from dateutil.parser import parse as dateutil_parse
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -24,6 +25,16 @@ class TaskBase(BaseModel):
     due_date: Optional[datetime] = None
     completed: bool = False
 
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def parse_due_date(cls, v):
+        if isinstance(v, str):
+            try:
+                return dateutil_parse(v)
+            except Exception:
+                raise ValueError("Format de date invalide")
+        return v
+
 class TaskCreate(TaskBase):
     pass
 
@@ -33,6 +44,8 @@ class TaskUpdate(TaskBase):
 class TaskOut(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
+    due_date: Optional[datetime] = None
     completed: bool
 
     class Config:
@@ -53,11 +66,18 @@ def read_tasks(db: Session = Depends(get_db)):
 
 @router.post("/", response_model=TaskOut)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    db_task = Task(**task.dict())
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+    try:
+        print("🔥 Données reçues:", task.dict())
+        db_task = Task(**task.dict(), user_id=None)  # utilisateur non encore géré
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        return db_task
+    except Exception as e:
+        print("❌ Erreur create_task:", e)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors de la création")
 
 @router.put("/{task_id}", response_model=TaskOut)
 def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
