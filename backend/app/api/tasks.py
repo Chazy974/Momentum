@@ -2,14 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.task import Task
-from app.models.user import User  # pour futur lien avec utilisateur
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskOut
+from typing import List
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-# Dépendance
+# Dépendance DB
 def get_db():
     db = SessionLocal()
     try:
@@ -17,48 +15,34 @@ def get_db():
     finally:
         db.close()
 
-# Schémas Pydantic
-class TaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    due_date: Optional[datetime] = None
-    completed: bool = False
-
-class TaskCreate(TaskBase):
-    pass
-
-class TaskUpdate(TaskBase):
-    pass
-
-class TaskOut(BaseModel):
-    id: int
-    title: str
-    completed: bool
-
-    class Config:
-        from_attributes = True
-
-# Routes
-@router.get("/", response_model=List[TaskOut])
+# Lire toutes les tâches
+@router.get("/", response_model=List[TaskRead])
 def read_tasks(db: Session = Depends(get_db)):
-    print(">>> GET /tasks appelé")
     try:
-        tasks = db.query(Task).all()
+        tasks = db.query(Task).order_by(Task.completed.asc(), Task.due_date.asc()).all()
+        print(f"✅ {len(tasks)} tâche(s) récupérées")
         return tasks
     except Exception as e:
         print(f"❌ ERREUR read_tasks: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des tâches")
 
+# Créer une tâche
 @router.post("/", response_model=TaskOut)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    db_task = Task(**task.dict())
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+    try:
+        print("🔥 Données reçues:", task.dict())
+        db_task = Task(**task.dict(), user_id=None)  # utilisateur non encore géré
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        return db_task
+    except Exception as e:
+        print("❌ Erreur create_task:", e)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors de la création")
 
+# Modifier une tâche
 @router.put("/{task_id}", response_model=TaskOut)
 def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
     db_task = db.query(Task).filter(Task.id == task_id).first()
@@ -70,6 +54,7 @@ def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
     db.refresh(db_task)
     return db_task
 
+# Supprimer une tâche
 @router.delete("/{task_id}")
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     db_task = db.query(Task).filter(Task.id == task_id).first()

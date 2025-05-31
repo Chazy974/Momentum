@@ -12,14 +12,22 @@ export async function fetchTasks(): Promise<Task[]> {
   return res.json();
 }
 
-export async function createTask(title: string): Promise<Task> {
+export async function createTask(
+  title: string,
+  description?: string,
+  due_date?: string
+): Promise<Task> {
   const res = await fetch("http://localhost:8000/tasks/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, completed: false }),
+    body: JSON.stringify({ title, description, due_date, completed: false }),
   });
+
+  const text = await res.text();
+  console.log("📥 Réponse brute POST /tasks:", text);
+
   if (!res.ok) throw new Error("Erreur lors de la création");
-  return res.json();
+  return JSON.parse(text);
 }
 
 export async function updateTask(task: Task): Promise<Task> {

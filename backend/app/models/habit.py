@@ -1,30 +1,22 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from .base import Base
+from datetime import datetime
 import enum
-
 class HabitTargetType(enum.Enum):
     boolean = "boolean"
     numeric = "numeric"
     time = "time"
-
 class Habit(Base):
     __tablename__ = "habits"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    target_type = Column(Enum(HabitTargetType), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    description = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
 
-    owner = relationship("User", back_populates="habits")
-    logs = relationship("HabitLog", back_populates="habit")
-
-class HabitLog(Base):
-    __tablename__ = "habit_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    habit_id = Column(Integer, ForeignKey("habits.id"))
-    date = Column(DateTime, nullable=False)
-    value = Column(String)
-
-    habit = relationship("Habit", back_populates="logs")
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    user = relationship("User", back_populates="habits")
+    
+    habit_logs = relationship("HabitLog", back_populates="habit")  

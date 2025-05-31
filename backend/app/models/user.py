@@ -11,3 +11,4 @@ class User(Base):
 
     # Lié aux tâches
     tasks = relationship("Task", back_populates="user", cascade="all, delete")
+    habits = relationship("Habit", back_populates="user", cascade="all, delete")
