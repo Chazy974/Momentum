@@ -8,20 +8,37 @@ function Tasks() {
   const [newDueDate, setNewDueDate] = useState("");
 
   useEffect(() => {
-    fetchTasks().then(setTasks).catch(console.error);
+    fetchTasks()
+      .then((data) => {
+        const sorted = sortTasks(data);
+        setTasks(sorted);
+      })
+      .catch(console.error);
   }, []);
+
+  const sortTasks = (tasks: Task[]) => {
+    return tasks.sort((a, b) => {
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      if (a.due_date && b.due_date) {
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      }
+      return 0;
+    });
+  };
 
   const handleAddTask = async () => {
     console.log("✅ handleAddTask déclenché");
     if (!newTask.trim()) return;
 
     try {
-      await createTask(
+      const task = await createTask(
         newTask.trim(),
         newDescription.trim() || undefined,
         newDueDate ? new Date(newDueDate).toISOString() : undefined
       );
-      const updatedTasks = await fetchTasks();
+      const updatedTasks = sortTasks([...tasks, task]);
       setTasks(updatedTasks);
       setNewTask("");
       setNewDescription("");
@@ -34,7 +51,8 @@ function Tasks() {
   const handleToggleComplete = async (task: Task) => {
     try {
       const updated = await updateTask({ ...task, completed: !task.completed });
-      setTasks(tasks.map(t => t.id === updated.id ? updated : t));
+      const updatedTasks = tasks.map(t => t.id === updated.id ? updated : t);
+      setTasks(sortTasks(updatedTasks));
     } catch (err) {
       console.error(err);
     }
@@ -43,7 +61,8 @@ function Tasks() {
   const handleDelete = async (id: number) => {
     try {
       await deleteTask(id);
-      setTasks(tasks.filter(t => t.id !== id));
+      const updatedTasks = tasks.filter(t => t.id !== id);
+      setTasks(sortTasks(updatedTasks));
     } catch (err) {
       console.error(err);
     }

@@ -3,12 +3,10 @@ from sqlalchemy.orm import relationship
 from .base import Base
 from datetime import datetime
 import enum
-
 class HabitTargetType(enum.Enum):
     boolean = "boolean"
     numeric = "numeric"
     time = "time"
-
 class Habit(Base):
     __tablename__ = "habits"
 
@@ -20,6 +18,5 @@ class Habit(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     user = relationship("User", back_populates="habits")
-
-    # ⚠️ NE PAS importer Log ici
-    logs = relationship("Log", back_populates="habit")  # En string
+    
+    habit_logs = relationship("HabitLog", back_populates="habit")  
